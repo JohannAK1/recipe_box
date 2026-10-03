@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recipe Box</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f2f2f7;--card:#ffffff;--text:#1c1c1e;--muted:#8e8e93;--line:#e5e5ea;
+  --accent:#d9480f;--accent-soft:#fff0e6;--danger:#d70015;--bar:rgba(242,242,247,.85);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--card:#1c1c1e;--text:#f2f2f7;--muted:#98989f;--line:#38383a;
+    --accent:#ff8a3d;--accent-soft:#3a2416;--danger:#ff453a;--bar:rgba(0,0,0,.8);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font:17px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  padding:0 env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 24px) env(safe-area-inset-left);
+  -webkit-text-size-adjust:100%;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;font-size:16px;color:var(--text)}
+.bar{position:sticky;top:0;z-index:10;background:var(--bar);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  padding:calc(env(safe-area-inset-top) + 8px) 16px 10px;border-bottom:.5px solid var(--line)}
+.bar-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:32px;line-height:1.15;margin:4px 0 10px;font-weight:700;letter-spacing:-.02em}
+.icon-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--accent)}
+.icon-btn svg{width:24px;height:24px}
+.search{width:100%;border:0;border-radius:10px;padding:9px 12px;background:var(--line);outline:none;-webkit-appearance:none;appearance:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:6px 13px;border-radius:999px;background:var(--card);border:.5px solid var(--line);font-size:15px;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.list{margin:14px 16px;background:var(--card);border-radius:var(--radius);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px;color:var(--text);border-bottom:.5px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:active{background:var(--line)}
+.thumb{flex:none;width:58px;height:58px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;font-size:28px;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.row-body{min-width:0;flex:1}
+.row-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-meta{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.star{color:var(--accent)}
+.chev{color:var(--muted);font-size:20px}
+.empty{text-align:center;color:var(--muted);padding:60px 32px}
+.empty .big{font-size:56px;margin-bottom:8px}
+.fab{position:fixed;right:calc(20px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));
+  width:58px;height:58px;border-radius:50%;background:var(--accent);color:#fff;font-size:32px;line-height:1;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);display:grid;place-items:center;z-index:20}
+.hint{margin:14px 16px 0;padding:12px 14px;border-radius:var(--radius);background:var(--accent-soft);font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.hint button{color:var(--muted);font-size:20px;line-height:1}
+/* nav bar */
+.nav{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px}
+.nav-btn{font-size:17px;color:var(--accent);padding:4px 0;min-width:60px}
+.nav-btn.right{text-align:right;font-weight:600}
+.nav-title{font-weight:600;font-size:17px}
+/* detail */
+.hero{width:100%;max-height:340px;object-fit:cover;display:block}
+.detail{padding:0 16px}
+.detail h1{margin-top:16px}
+.meta{color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+.tag{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.box{background:var(--card);border-radius:var(--radius);padding:14px 16px;margin:14px 0}
+.box h2{font-size:20px;margin:0 0 8px}
+.stepper{display:flex;align-items:center;justify-content:space-between}
+.stepper .ctl{display:flex;align-items:center;gap:14px}
+.stepper button{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:22px;line-height:1}
+.stepper .val{min-width:28px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.ing{list-style:none;margin:0;padding:0}
+.ing li{padding:9px 0 9px 32px;border-bottom:.5px solid var(--line);position:relative}
+.ing li:last-child{border-bottom:0}
+.ing li::before{content:"";position:absolute;left:2px;top:12px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted)}
+.ing li.done{color:var(--muted);text-decoration:line-through}
+.ing li.done::before{background:var(--accent);border-color:var(--accent)}
+.ing li.head{padding-left:0;font-weight:600;color:var(--muted);font-size:14px;text-transform:uppercase;letter-spacing:.04em}
+.ing li.head::before{display:none}
+.steps{margin:0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;padding:8px 0 8px 38px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:26px;height:26px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:14px;font-weight:600;display:grid;place-items:center}
+.notes{white-space:pre-wrap}
+.actions{display:flex;flex-direction:column;gap:10px;margin:22px 0}
+.btn{width:100%;padding:13px;border-radius:12px;background:var(--card);font-weight:600;color:var(--accent);text-align:center}
+.btn.danger{color:var(--danger)}
+.btn.primary{background:var(--accent);color:#fff}
+/* form */
+.form{padding:0 16px}
+.group{background:var(--card);border-radius:var(--radius);margin:16px 0;overflow:hidden}
+.field{display:block;padding:10px 16px;border-bottom:.5px solid var(--line)}
+.field:last-child{border-bottom:0}
+.field span{display:block;font-size:13px;color:var(--muted);margin-bottom:2px}
+.field input,.field textarea{width:100%;border:0;outline:none;background:transparent;padding:2px 0;resize:vertical}
+.field textarea{min-height:130px;line-height:1.45}
+.two{display:grid;grid-template-columns:1fr 1fr}
+.two .field:first-child{border-right:.5px solid var(--line)}
+.help{font-size:13px;color:var(--muted);margin:-8px 16px 0}
+.photo-pick{display:flex;align-items:center;gap:14px;padding:12px 16px}
+.photo-pick .thumb{width:80px;height:80px}
+.photo-pick .links{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.photo-pick .links button{color:var(--accent)}
+.photo-pick .links button.rm{color:var(--danger);font-size:15px}
+/* sheet + toast */
+dialog{border:0;padding:0;background:transparent;width:100%;max-width:520px;margin:auto auto 0;color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.sheet{padding:0 10px calc(10px + env(safe-area-inset-bottom))}
+.sheet .grp{background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:8px}
+.sheet .grp p{margin:0;padding:14px 16px;color:var(--muted);font-size:13px;text-align:center;border-bottom:.5px solid var(--line)}
+.sheet button{display:block;width:100%;padding:16px;font-size:18px;color:var(--accent);border-bottom:.5px solid var(--line)}
+.sheet button:last-child{border-bottom:0}
+.sheet .cancel{font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  background:rgba(40,40,40,.92);color:#fff;padding:10px 18px;border-radius:999px;font-size:15px;z-index:50;
+  opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<dialog id="sheet">
+  <div class="sheet">
+    <div class="grp">
+      <p>Recipes are stored only on this device. Export a backup now and then — e.g. to Files or iCloud Drive.</p>
+      <button id="exportBtn">Export backup</button>
+      <button id="importBtn">Import backup</button>
+    </div>
+    <div class="grp"><button class="cancel" id="sheetCancel">Cancel</button></div>
+  </div>
+</dialog>
+<input type="file" id="importInput" accept="application/json,.json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- storage (IndexedDB) ---------- */
+const DB_NAME = 'recipe-box', STORE = 'recipes';
+let db;
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: 'id' });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function getAll() {
+  return new Promise((res, rej) => {
+    const r = db.transaction(STORE).objectStore(STORE).getAll();
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+function write(fn) {
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, 'readwrite');
+    fn(t.objectStore(STORE));
+    t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+  });
+}
+const putRecipe = r => write(s => s.put(r));
+const deleteRecipe = id => write(s => s.delete(id));
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const lines = t => String(t || '').split('\n').map(l => l.trim()).filter(Boolean);
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function normalize(r) {
+  return {
+    id: String(r.id || uid()), title: String(r.title || 'Untitled').trim(),
+    servings: Math.max(0, parseInt(r.servings, 10) || 0), time: String(r.time || '').trim(),
+    tags: Array.isArray(r.tags) ? r.tags.map(String) : [], ingredients: String(r.ingredients || ''),
+    steps: String(r.steps || ''), notes: String(r.notes || ''), photo: typeof r.photo === 'string' ? r.photo : '',
+    favorite: !!r.favorite, created: r.created || Date.now(), updated: r.updated || Date.now()
+  };
+}
+
+/* ---------- ingredient scaling ---------- */
+const UNI = {'½':1/2,'⅓':1/3,'⅔':2/3,'¼':1/4,'¾':3/4,'⅛':1/8};
+const QS = '(?:\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?[½⅓⅔¼¾⅛]?|[½⅓⅔¼¾⅛])';
+const QRE = new RegExp('^(' + QS + ')(?:(\\s*[-–]\\s*)(' + QS + '))?');
+function parseQ(s) {
+  s = s.trim().replace(',', '.'); let m;
+  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + m[2] / m[3];
+  if ((m = s.match(/^(\d+)\/(\d+)$/))) return m[1] / m[2];
+  if ((m = s.match(/^(\d+(?:\.\d+)?)?([½⅓⅔¼¾⅛])$/))) return (m[1] ? +m[1] : 0) + UNI[m[2]];
+  return parseFloat(s);
+}
+const FR = [[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
+function fmtQ(x, comma) {
+  let out;
+  if (x >= 10) out = String(Math.round(x));
+  else {
+    const w = Math.floor(x), f = x - w;
+    if (f < 0.04) out = String(w);
+    else if (f > 0.96) out = String(w + 1);
+    else {
+      const hit = FR.find(([v]) => Math.abs(f - v) < 0.04);
+      out = hit ? (w ? w : '') + hit[1] : String(Math.round(x * 10) / 10);
+    }
+  }
+  return comma ? out.replace('.', ',') : out;
+}
+// splits an ingredient line into scaled quantity + rest of the text
+function splitQty(line, factor) {
+  const m = line.match(QRE);
+  if (!m) return { q: '', rest: line };
+  const a = parseQ(m[1]);
+  if (!isFinite(a)) return { q: '', rest: line };
+  const comma = m[1].includes(',');
+  let q = factor === 1 ? m[1] : fmtQ(a * factor, comma);
+  if (m[3]) {
+    const b = parseQ(m[3]);
+    q += m[2] + (factor === 1 || !isFinite(b) ? m[3] : fmtQ(b * factor, comma));
+  }
+  return { q, rest: line.slice(m[0].length) };
+}
+
+/* ---------- state ---------- */
+const app = $('#app');
+let recipes = [], query = '', filter = 'all', listScroll = 0, currentView = '';
+async function load() {
+  recipes = (await getAll()).map(normalize)
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+}
+const byId = id => recipes.find(r => r.id === id);
+function allTags() {
+  const s = new Set(); recipes.forEach(r => r.tags.forEach(t => s.add(t)));
+  return [...s].sort((a, b) => a.localeCompare(b));
+}
+
+/* ---------- router ---------- */
+function route() {
+  if (currentView === 'list') listScroll = window.scrollY;
+  const p = (location.hash.slice(1) || '/').split('/');
+  if (p[1] === 'r' && byId(p[2])) renderDetail(byId(p[2]));
+  else if (p[1] === 'edit' && byId(p[2])) renderEdit(byId(p[2]));
+  else if (p[1] === 'new') renderEdit(null);
+  else { renderList(); window.scrollTo(0, listScroll); return; }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- list view ---------- */
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+function hintDismissed() { try { return localStorage.getItem('hintDismissed') === '1'; } catch { return false; } }
+
+function renderList() {
+  currentView = 'list';
+  const showHint = isIOS && !standalone && !hintDismissed();
+  app.innerHTML = `
+    <header class="bar">
+      <div class="bar-row">
+        <h1>Recipes</h1>
+        <button class="icon-btn" id="menuBtn" aria-label="Backup">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+        </button>
+      </div>
+      <input id="search" class="search" type="search" placeholder="Search recipes or ingredients" value="${esc(query)}" autocomplete="off">
+      <div class="chips" id="chips"></div>
+    </header>
+    ${showHint ? `<div class="hint" id="hint"><div><b>Install on your iPhone:</b> tap the Share button, then “Add to Home Screen”. Use the app from the home screen — recipes saved in a Safari tab are stored separately.</div><button id="hintX" aria-label="Dismiss">×</button></div>` : ''}
+    <div id="results"></div>
+    <a class="fab" href="#/new" aria-label="Add recipe">+</a>`;
+  $('#search').addEventListener('input', e => { query = e.target.value; renderResults(); });
+  $('#menuBtn').addEventListener('click', () => $('#sheet').showModal());
+  if (showHint) $('#hintX').addEventListener('click', () => {
+    try { localStorage.setItem('hintDismissed', '1'); } catch {}
+    $('#hint').remove();
+  });
+  renderChips(); renderResults();
+}
+function renderChips() {
+  const tags = allTags();
+  if (!tags.includes(filter) && !['all', 'fav'].includes(filter)) filter = 'all';
+  const chip = (key, label) => `<button class="chip${filter === key ? ' on' : ''}" data-f="${esc(key)}">${esc(label)}</button>`;
+  $('#chips').innerHTML = chip('all', 'All') + chip('fav', '★ Favorites') + tags.map(t => chip(t, t)).join('');
+  $('#chips').onclick = e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    filter = b.dataset.f; renderChips(); renderResults();
+  };
+}
+function renderResults() {
+  const q = query.trim().toLowerCase();
+  const list = recipes.filter(r =>
+    (filter === 'all' || (filter === 'fav' ? r.favorite : r.tags.includes(filter))) &&
+    (!q || r.title.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q)) || r.ingredients.toLowerCase().includes(q)));
+  const out = $('#results');
+  if (!recipes.length) {
+    out.innerHTML = `<div class="empty"><div class="big">🍲</div><b>No recipes yet</b><br>Tap + to add your first one.</div>`;
+    return;
+  }
+  if (!list.length) { out.innerHTML = `<div class="empty">No recipes match.</div>`; return; }
+  out.innerHTML = `<div class="list">${list.map(r => `
+    <a class="row" href="#/r/${encodeURIComponent(r.id)}">
+      <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : '🍽️'}</div>
+      <div class="row-body">
+        <div class="row-title">${r.favorite ? '<span class="star">★</span> ' : ''}${esc(r.title)}</div>
+        <div class="row-meta">${esc([r.time, r.tags.join(', ')].filter(Boolean).join(' · ') || 'No details')}</div>
+      </div>
+      <span class="chev">›</span>
+    </a>`).join('')}</div>`;
+}
+
+/* ---------- detail view ---------- */
+function renderDetail(r) {
+  currentView = 'detail';
+  let target = r.servings || 0;
+  const steps = lines(r.steps).map(s => s.replace(/^\d+[.)]\s*/, ''));
+  app.innerHTML = `
+    <header class="bar nav">
+      <a class="nav-btn" href="#/">‹ Recipes</a>
+      <a class="nav-btn right" href="#/edit/${encodeURIComponent(r.id)}">Edit</a>
+    </header>
+    ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
+    <main class="detail">
+      <h1>${esc(r.title)}</h1>
+      <div class="meta">
+        ${r.time ? `<span>⏱ ${esc(r.time)}</span>` : ''}
+        ${r.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+      </div>
+      ${r.servings ? `<div class="box stepper"><span>Servings</span>
+        <div class="ctl"><button id="minus" aria-label="Fewer">−</button><span class="val" id="sv"></span><button id="plus" aria-label="More">+</button></div></div>` : ''}
+      ${lines(r.ingredients).length ? `<section class="box"><h2>Ingredients</h2><ul class="ing" id="ing"></ul></section>` : ''}
+      ${steps.length ? `<section class="box"><h2>Steps</h2><ol class="steps">${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></section>` : ''}
+      ${r.notes.trim() ? `<section class="box"><h2>Notes</h2><div class="notes">${esc(r.notes.trim())}</div></section>` : ''}
+      <div class="actions">
+        <button class="btn" id="favBtn">${r.favorite ? '★ Remove from favorites' : '☆ Add to favorites'}</button>
+        <button class="btn danger" id="delBtn">Delete recipe</button>
+      </div>
+    </main>`;
+
+  const done = new Set();
+  function drawIng() {
+    const ul = $('#ing'); if (!ul) return;
+    const f = r.servings ? target / r.servings : 1;
+    ul.innerHTML = lines(r.ingredients).map((l, i) => {
+      if (l.endsWith(':')) return `<li class="head">${esc(l.slice(0, -1))}</li>`;
+      const { q, rest } = splitQty(l, f);
+      return `<li data-i="${i}" class="${done.has(i) ? 'done' : ''}">${q ? `<b>${esc(q)}</b>` : ''}${esc(rest)}</li>`;
+    }).join('');
+    if ($('#sv')) $('#sv').textContent = target;
+  }
+  drawIng();
+  if ($('#ing')) $('#ing').addEventListener('click', e => {
+    const li = e.target.closest('li[data-i]'); if (!li) return;
+    const i = +li.dataset.i; done.has(i) ? done.delete(i) : done.add(i); li.classList.toggle('done');
+  });
+  if (r.servings) {
+    $('#minus').onclick = () => { if (target > 1) { target--; drawIng(); } };
+    $('#plus').onclick = () => { if (target < 99) { target++; drawIng(); } };
+  }
+  $('#favBtn').onclick = async () => {
+    r.favorite = !r.favorite; r.updated = Date.now();
+    await putRecipe(r); await load(); renderDetail(byId(r.id));
+  };
+  $('#delBtn').onclick = async () => {
+    if (!confirm(`Delete “${r.title}”? This can't be undone.`)) return;
+    await deleteRecipe(r.id); await load(); toast('Recipe deleted'); location.hash = '#/';
+  };
+}
+
+/* ---------- edit view ---------- */
+function resizeImage(file, max = 1200) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
+function renderEdit(r) {
+  currentView = 'edit';
+  const isNew = !r; r = r || normalize({});
+  let photo = r.photo;
+  app.innerHTML = `
+    <header class="bar nav">
+      <a class="nav-btn" href="${isNew ? '#/' : '#/r/' + encodeURIComponent(r.id)}">Cancel</a>
+      <span class="nav-title">${isNew ? 'New Recipe' : 'Edit Recipe'}</span>
+      <button class="nav-btn right" id="saveBtn">Save</button>
+    </header>
+    <form class="form" id="form" autocomplete="off">
+      <div class="group">
+        <label class="field"><span>Title</span><input name="title" value="${esc(isNew ? '' : r.title)}" placeholder="e.g. Grandma's apple cake" required></label>
+      </div>
+      <div class="group"><div class="photo-pick">
+        <div class="thumb" id="pv"></div>
+        <div class="links"><button type="button" id="pickPhoto"></button><button type="button" class="rm" id="rmPhoto">Remove photo</button></div>
+        <input type="file" id="photoInput" accept="image/*" hidden>
+      </div></div>
+      <div class="group two">
+        <label class="field"><span>Servings</span><input name="servings" type="number" inputmode="numeric" min="0" value="${r.servings || ''}" placeholder="4"></label>
+        <label class="field"><span>Time</span><input name="time" value="${esc(r.time)}" placeholder="45 min"></label>
+      </div>
+      <div class="group">
+        <label class="field"><span>Tags (comma separated)</span><input name="tags" value="${esc(r.tags.join(', '))}" placeholder="Dinner, Vegetarian"></label>
+      </div>
+      <div class="group">
+        <label class="field"><span>Ingredients — one per line</span><textarea name="ingredients" placeholder="200 g flour&#10;2 eggs&#10;1/2 tsp salt&#10;Topping:&#10;50 g sugar">${esc(r.ingredients)}</textarea></label>
+      </div>
+      <p class="help">Start lines with an amount so they scale with servings. A line ending in “:” becomes a section heading.</p>
+      <div class="group">
+        <label class="field"><span>Steps — one per line</span><textarea name="steps" placeholder="Preheat the oven to 180 °C.&#10;Mix the dry ingredients.">${esc(r.steps)}</textarea></label>
+      </div>
+      <div class="group">
+        <label class="field"><span>Notes</span><textarea name="notes" style="min-height:80px" placeholder="Source, tips, variations…">${esc(r.notes)}</textarea></label>
+      </div>
+      <button class="btn primary" type="submit">Save recipe</button>
+    </form>`;
+
+  function drawPhoto() {
+    $('#pv').innerHTML = photo ? `<img src="${photo}" alt="">` : '📷';
+    $('#pickPhoto').textContent = photo ? 'Change photo' : 'Add photo';
+    $('#rmPhoto').style.display = photo ? '' : 'none';
+  }
+  drawPhoto();
+  $('#pickPhoto').onclick = () => $('#photoInput').click();
+  $('#rmPhoto').onclick = () => { photo = ''; drawPhoto(); };
+  $('#photoInput').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { photo = await resizeImage(f); drawPhoto(); } catch { toast('Could not load that photo'); }
+    e.target.value = '';
+  };
+
+  async function save(e) {
+    if (e) e.preventDefault();
+    const fd = new FormData($('#form'));
+    const title = String(fd.get('title')).trim();
+    if (!title) { toast('Please add a title'); $('[name=title]').focus(); return; }
+    const rec = normalize({
+      ...r, title, photo,
+      servings: fd.get('servings'), time: fd.get('time'),
+      tags: [...new Set(String(fd.get('tags')).split(',').map(t => t.trim()).filter(Boolean))],
+      ingredients: String(fd.get('ingredients')).trim(), steps: String(fd.get('steps')).trim(),
+      notes: String(fd.get('notes')).trim(), updated: Date.now()
+    });
+    try { await putRecipe(rec); } catch { toast('Saving failed — storage may be full'); return; }
+    await load(); toast('Saved');
+    location.replace('#/r/' + encodeURIComponent(rec.id));
+  }
+  $('#form').addEventListener('submit', save);
+  $('#saveBtn').onclick = save;
+  if (isNew) setTimeout(() => $('[name=title]').focus(), 50);
+}
+
+/* ---------- backup ---------- */
+$('#sheetCancel').onclick = () => $('#sheet').close();
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').close(); });
+$('#exportBtn').onclick = async () => {
+  $('#sheet').close();
+  const name = `recipes-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([JSON.stringify({ app: 'recipe-box', version: 1, exported: new Date().toISOString(), recipes })],
+    name, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Recipe backup' }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+$('#importBtn').onclick = () => { $('#sheet').close(); $('#importInput').click(); };
+$('#importInput').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch { alert("That file isn't a valid recipe backup."); return; }
+  const list = Array.isArray(data) ? data : data && data.recipes;
+  if (!Array.isArray(list)) { alert("That file isn't a valid recipe backup."); return; }
+  const valid = list.filter(x => x && x.title);
+  if (!confirm(`Import ${valid.length} recipe(s)? Recipes with the same ID will be overwritten.`)) return;
+  await write(s => valid.forEach(x => s.put(normalize(x))));
+  await load(); toast(`Imported ${valid.length} recipe(s)`); route();
+};
+
+/* ---------- start ---------- */
+(async () => {
+  try {
+    db = await openDB(); await load();
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><b>Storage is unavailable.</b><br>Private Browsing can block it — open the app normally.</div>`;
+    return;
+  }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  route();
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost'))
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
