@@ -1,7 +1,7 @@
 // Offline support: the app files are cached so it opens without internet.
 // Your recipes are NOT here — they live in IndexedDB on the device.
 // Bump CACHE when you change the files so phones pick up the new version.
-const CACHE = 'recipe-box-v1';
+const CACHE = 'recipe-box-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

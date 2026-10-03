@@ -1,7 +1,9 @@
 # Recipe Box — offline recipe app for iPhone
 
-A web app you install to your home screen. Recipes (including photos) are stored
-**only on your iPhone** (IndexedDB). It works offline after the first visit.
+A web app you install to your home screen. Instead of typing recipes in, you save
+**links to the original recipes** plus your own **notes** (and optional tags/photo).
+Everything is stored **only on your iPhone** (IndexedDB). The app opens offline; the
+linked recipe pages themselves need internet.
 
 ## Files
 | File | Purpose |
@@ -30,11 +32,12 @@ app's code — your recipes never leave the phone.
    own storage, separate from Safari tabs — so add your recipes there.
 
 ## 3. Using it
-- **+** adds a recipe; tap a recipe to view, **Edit** to change it.
-- Ingredients: one per line, starting with the amount (`200 g flour`, `1/2 tsp salt`,
-  `2-3 eggs`) so they scale when you change servings. A line ending in `:` becomes a heading.
-- Tap ingredients to tick them off while cooking.
-- Search covers titles, tags and ingredients; tags become filter chips.
+- Copy a recipe's link (e.g. Safari → Share → Copy), open the app, tap **+**, then **Paste**.
+- Title is optional — if you leave it empty, the website name is used.
+- **Notes**: your changes, tips, how it turned out. Notes are searchable.
+- In a recipe, **Open recipe ↗** opens the original page; **Share link** sends it on.
+- Search covers titles, notes, tags and websites; tags become filter chips.
+- Recipes saved with the older version keep their ingredients and steps (shown read-only).
 
 ## 4. Backups (important)
 Data lives only on the phone. If you delete the home-screen app, the recipes go with it.

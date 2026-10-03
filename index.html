@@ -52,6 +52,7 @@ h1{font-size:32px;line-height:1.15;margin:4px 0 10px;font-weight:700;letter-spac
 .row-body{min-width:0;flex:1}
 .row-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row-meta{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-note{color:var(--muted);font-size:14px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .star{color:var(--accent)}
 .chev{color:var(--muted);font-size:20px}
 .empty{text-align:center;color:var(--muted);padding:60px 32px}
@@ -74,23 +75,13 @@ h1{font-size:32px;line-height:1.15;margin:4px 0 10px;font-weight:700;letter-spac
 .tag{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
 .box{background:var(--card);border-radius:var(--radius);padding:14px 16px;margin:14px 0}
 .box h2{font-size:20px;margin:0 0 8px}
-.stepper{display:flex;align-items:center;justify-content:space-between}
-.stepper .ctl{display:flex;align-items:center;gap:14px}
-.stepper button{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:22px;line-height:1}
-.stepper .val{min-width:28px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
-.ing{list-style:none;margin:0;padding:0}
-.ing li{padding:9px 0 9px 32px;border-bottom:.5px solid var(--line);position:relative}
-.ing li:last-child{border-bottom:0}
-.ing li::before{content:"";position:absolute;left:2px;top:12px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--muted)}
-.ing li.done{color:var(--muted);text-decoration:line-through}
-.ing li.done::before{background:var(--accent);border-color:var(--accent)}
-.ing li.head{padding-left:0;font-weight:600;color:var(--muted);font-size:14px;text-transform:uppercase;letter-spacing:.04em}
-.ing li.head::before{display:none}
-.steps{margin:0;padding:0;list-style:none;counter-reset:s}
-.steps li{counter-increment:s;padding:8px 0 8px 38px;position:relative}
-.steps li::before{content:counter(s);position:absolute;left:0;top:8px;width:26px;height:26px;border-radius:50%;
-  background:var(--accent);color:#fff;font-size:14px;font-weight:600;display:grid;place-items:center}
 .notes{white-space:pre-wrap}
+.muted{color:var(--muted)}
+.open-link{display:flex;align-items:center;gap:12px;background:var(--accent);color:#fff;border-radius:var(--radius);padding:14px 16px;margin:14px 0}
+.open-link .ol-body{flex:1;min-width:0}
+.open-link b{display:block;font-size:18px}
+.open-link small{display:block;opacity:.85;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.open-link .arrow{font-size:22px}
 .actions{display:flex;flex-direction:column;gap:10px;margin:22px 0}
 .btn{width:100%;padding:13px;border-radius:12px;background:var(--card);font-weight:600;color:var(--accent);text-align:center}
 .btn.danger{color:var(--danger)}
@@ -102,9 +93,10 @@ h1{font-size:32px;line-height:1.15;margin:4px 0 10px;font-weight:700;letter-spac
 .field:last-child{border-bottom:0}
 .field span{display:block;font-size:13px;color:var(--muted);margin-bottom:2px}
 .field input,.field textarea{width:100%;border:0;outline:none;background:transparent;padding:2px 0;resize:vertical}
-.field textarea{min-height:130px;line-height:1.45}
-.two{display:grid;grid-template-columns:1fr 1fr}
-.two .field:first-child{border-right:.5px solid var(--line)}
+.field textarea{min-height:160px;line-height:1.45}
+.url-row{display:flex;gap:10px;align-items:center}
+.url-row input{flex:1;min-width:0}
+.paste{flex:none;color:var(--accent);font-size:15px;font-weight:600;padding:4px 10px;border-radius:8px;background:var(--accent-soft)}
 .help{font-size:13px;color:var(--muted);margin:-8px 16px 0}
 .photo-pick{display:flex;align-items:center;gap:14px;padding:12px 16px}
 .photo-pick .thumb{width:80px;height:80px}
@@ -175,60 +167,38 @@ const deleteRecipe = id => write(s => s.delete(id));
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
-const lines = t => String(t || '').split('\n').map(l => l.trim()).filter(Boolean);
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
 }
+// Accepts "chefkoch.de/rezepte/…" or a pasted text that contains a link; returns a clean https URL or ''
+function cleanUrl(s) {
+  s = String(s || '').trim();
+  if (!s) return '';
+  const found = s.match(/https?:\/\/\S+/i);
+  if (found) s = found[0];
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    return u.hostname.includes('.') ? u.href : '';
+  } catch { return ''; }
+}
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
 function normalize(r) {
   return {
-    id: String(r.id || uid()), title: String(r.title || 'Untitled').trim(),
+    id: String(r.id || uid()),
+    url: typeof r.url === 'string' ? r.url.trim() : '',
+    title: String(r.title || 'Untitled').trim(),
+    tags: Array.isArray(r.tags) ? r.tags.map(String) : [],
+    notes: String(r.notes || ''),
+    photo: typeof r.photo === 'string' ? r.photo : '',
+    favorite: !!r.favorite, created: r.created || Date.now(), updated: r.updated || Date.now(),
+    // Fields from the older "type everything in" version — kept so nothing is lost.
     servings: Math.max(0, parseInt(r.servings, 10) || 0), time: String(r.time || '').trim(),
-    tags: Array.isArray(r.tags) ? r.tags.map(String) : [], ingredients: String(r.ingredients || ''),
-    steps: String(r.steps || ''), notes: String(r.notes || ''), photo: typeof r.photo === 'string' ? r.photo : '',
-    favorite: !!r.favorite, created: r.created || Date.now(), updated: r.updated || Date.now()
+    ingredients: String(r.ingredients || ''), steps: String(r.steps || '')
   };
-}
-
-/* ---------- ingredient scaling ---------- */
-const UNI = {'½':1/2,'⅓':1/3,'⅔':2/3,'¼':1/4,'¾':3/4,'⅛':1/8};
-const QS = '(?:\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?[½⅓⅔¼¾⅛]?|[½⅓⅔¼¾⅛])';
-const QRE = new RegExp('^(' + QS + ')(?:(\\s*[-–]\\s*)(' + QS + '))?');
-function parseQ(s) {
-  s = s.trim().replace(',', '.'); let m;
-  if ((m = s.match(/^(\d+)\s+(\d+)\/(\d+)$/))) return +m[1] + m[2] / m[3];
-  if ((m = s.match(/^(\d+)\/(\d+)$/))) return m[1] / m[2];
-  if ((m = s.match(/^(\d+(?:\.\d+)?)?([½⅓⅔¼¾⅛])$/))) return (m[1] ? +m[1] : 0) + UNI[m[2]];
-  return parseFloat(s);
-}
-const FR = [[1/8,'⅛'],[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
-function fmtQ(x, comma) {
-  let out;
-  if (x >= 10) out = String(Math.round(x));
-  else {
-    const w = Math.floor(x), f = x - w;
-    if (f < 0.04) out = String(w);
-    else if (f > 0.96) out = String(w + 1);
-    else {
-      const hit = FR.find(([v]) => Math.abs(f - v) < 0.04);
-      out = hit ? (w ? w : '') + hit[1] : String(Math.round(x * 10) / 10);
-    }
-  }
-  return comma ? out.replace('.', ',') : out;
-}
-// splits an ingredient line into scaled quantity + rest of the text
-function splitQty(line, factor) {
-  const m = line.match(QRE);
-  if (!m) return { q: '', rest: line };
-  const a = parseQ(m[1]);
-  if (!isFinite(a)) return { q: '', rest: line };
-  const comma = m[1].includes(',');
-  let q = factor === 1 ? m[1] : fmtQ(a * factor, comma);
-  if (m[3]) {
-    const b = parseQ(m[3]);
-    q += m[2] + (factor === 1 || !isFinite(b) ? m[3] : fmtQ(b * factor, comma));
-  }
-  return { q, rest: line.slice(m[0].length) };
 }
 
 /* ---------- state ---------- */
@@ -272,7 +242,7 @@ function renderList() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
         </button>
       </div>
-      <input id="search" class="search" type="search" placeholder="Search recipes or ingredients" value="${esc(query)}" autocomplete="off">
+      <input id="search" class="search" type="search" placeholder="Search titles, notes, websites" value="${esc(query)}" autocomplete="off">
       <div class="chips" id="chips"></div>
     </header>
     ${showHint ? `<div class="hint" id="hint"><div><b>Install on your iPhone:</b> tap the Share button, then “Add to Home Screen”. Use the app from the home screen — recipes saved in a Safari tab are stored separately.</div><button id="hintX" aria-label="Dismiss">×</button></div>` : ''}
@@ -298,31 +268,39 @@ function renderChips() {
 }
 function renderResults() {
   const q = query.trim().toLowerCase();
+  const hay = r => [r.title, r.tags.join(' '), r.notes, r.url, r.ingredients].join('\n').toLowerCase();
   const list = recipes.filter(r =>
     (filter === 'all' || (filter === 'fav' ? r.favorite : r.tags.includes(filter))) &&
-    (!q || r.title.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q)) || r.ingredients.toLowerCase().includes(q)));
+    (!q || hay(r).includes(q)));
   const out = $('#results');
   if (!recipes.length) {
-    out.innerHTML = `<div class="empty"><div class="big">🍲</div><b>No recipes yet</b><br>Tap + to add your first one.</div>`;
+    out.innerHTML = `<div class="empty"><div class="big">🔗</div><b>No recipes yet</b><br>Copy a recipe link, tap +, and paste it.</div>`;
     return;
   }
   if (!list.length) { out.innerHTML = `<div class="empty">No recipes match.</div>`; return; }
-  out.innerHTML = `<div class="list">${list.map(r => `
+  out.innerHTML = `<div class="list">${list.map(r => {
+    const meta = [hostOf(r.url), r.tags.join(', ')].filter(Boolean).join(' · ');
+    const note = r.notes.trim().split('\n')[0];
+    return `
     <a class="row" href="#/r/${encodeURIComponent(r.id)}">
-      <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : '🍽️'}</div>
+      <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : (r.url ? '🔗' : '🍽️')}</div>
       <div class="row-body">
         <div class="row-title">${r.favorite ? '<span class="star">★</span> ' : ''}${esc(r.title)}</div>
-        <div class="row-meta">${esc([r.time, r.tags.join(', ')].filter(Boolean).join(' · ') || 'No details')}</div>
+        ${meta ? `<div class="row-meta">${esc(meta)}</div>` : ''}
+        ${note ? `<div class="row-note">${esc(note)}</div>` : ''}
       </div>
       <span class="chev">›</span>
-    </a>`).join('')}</div>`;
+    </a>`;
+  }).join('')}</div>`;
 }
 
 /* ---------- detail view ---------- */
 function renderDetail(r) {
   currentView = 'detail';
-  let target = r.servings || 0;
-  const steps = lines(r.steps).map(s => s.replace(/^\d+[.)]\s*/, ''));
+  const legacy = [
+    r.ingredients.trim() && ['Ingredients', r.ingredients.trim()],
+    r.steps.trim() && ['Steps', r.steps.trim()]
+  ].filter(Boolean);
   app.innerHTML = `
     <header class="bar nav">
       <a class="nav-btn" href="#/">‹ Recipes</a>
@@ -331,41 +309,33 @@ function renderDetail(r) {
     ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
     <main class="detail">
       <h1>${esc(r.title)}</h1>
-      <div class="meta">
+      ${r.tags.length || r.time ? `<div class="meta">
         ${r.time ? `<span>⏱ ${esc(r.time)}</span>` : ''}
         ${r.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}
-      </div>
-      ${r.servings ? `<div class="box stepper"><span>Servings</span>
-        <div class="ctl"><button id="minus" aria-label="Fewer">−</button><span class="val" id="sv"></span><button id="plus" aria-label="More">+</button></div></div>` : ''}
-      ${lines(r.ingredients).length ? `<section class="box"><h2>Ingredients</h2><ul class="ing" id="ing"></ul></section>` : ''}
-      ${steps.length ? `<section class="box"><h2>Steps</h2><ol class="steps">${steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></section>` : ''}
-      ${r.notes.trim() ? `<section class="box"><h2>Notes</h2><div class="notes">${esc(r.notes.trim())}</div></section>` : ''}
+      </div>` : ''}
+      ${r.url ? `<a class="open-link" href="${esc(r.url)}" target="_blank" rel="noopener">
+        <div class="ol-body"><b>Open recipe</b><small>${esc(hostOf(r.url) || r.url)}</small></div>
+        <span class="arrow">↗</span></a>` : ''}
+      <section class="box"><h2>Notes</h2>
+        ${r.notes.trim() ? `<div class="notes">${esc(r.notes.trim())}</div>`
+          : `<a class="muted" href="#/edit/${encodeURIComponent(r.id)}">No notes yet — tap to add some.</a>`}
+      </section>
+      ${legacy.map(([h, t]) => `<section class="box"><h2>${h}</h2><div class="notes">${esc(t)}</div></section>`).join('')}
       <div class="actions">
+        ${r.url ? `<button class="btn" id="shareBtn">Share link</button>` : ''}
         <button class="btn" id="favBtn">${r.favorite ? '★ Remove from favorites' : '☆ Add to favorites'}</button>
         <button class="btn danger" id="delBtn">Delete recipe</button>
       </div>
     </main>`;
 
-  const done = new Set();
-  function drawIng() {
-    const ul = $('#ing'); if (!ul) return;
-    const f = r.servings ? target / r.servings : 1;
-    ul.innerHTML = lines(r.ingredients).map((l, i) => {
-      if (l.endsWith(':')) return `<li class="head">${esc(l.slice(0, -1))}</li>`;
-      const { q, rest } = splitQty(l, f);
-      return `<li data-i="${i}" class="${done.has(i) ? 'done' : ''}">${q ? `<b>${esc(q)}</b>` : ''}${esc(rest)}</li>`;
-    }).join('');
-    if ($('#sv')) $('#sv').textContent = target;
-  }
-  drawIng();
-  if ($('#ing')) $('#ing').addEventListener('click', e => {
-    const li = e.target.closest('li[data-i]'); if (!li) return;
-    const i = +li.dataset.i; done.has(i) ? done.delete(i) : done.add(i); li.classList.toggle('done');
-  });
-  if (r.servings) {
-    $('#minus').onclick = () => { if (target > 1) { target--; drawIng(); } };
-    $('#plus').onclick = () => { if (target < 99) { target++; drawIng(); } };
-  }
+  if ($('#shareBtn')) $('#shareBtn').onclick = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: r.title, url: r.url }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(r.url); toast('Link copied'); }
+    catch { toast('Could not share the link'); }
+  };
   $('#favBtn').onclick = async () => {
     r.favorite = !r.favorite; r.updated = Date.now();
     await putRecipe(r); await load(); renderDetail(byId(r.id));
@@ -403,30 +373,28 @@ function renderEdit(r) {
     </header>
     <form class="form" id="form" autocomplete="off">
       <div class="group">
-        <label class="field"><span>Title</span><input name="title" value="${esc(isNew ? '' : r.title)}" placeholder="e.g. Grandma's apple cake" required></label>
+        <label class="field"><span>Link to the recipe</span>
+          <div class="url-row">
+            <input name="url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"
+              value="${esc(r.url)}" placeholder="https://…">
+            <button type="button" class="paste" id="pasteBtn">Paste</button>
+          </div>
+        </label>
+        <label class="field"><span>Title</span><input name="title" value="${esc(isNew ? '' : r.title)}" placeholder="e.g. Grandma's apple cake"></label>
+      </div>
+      <div class="group">
+        <label class="field"><span>Notes</span><textarea name="notes" placeholder="What did you change? How did it turn out? e.g. Use half the sugar, 10 min longer in the oven…">${esc(r.notes)}</textarea></label>
+      </div>
+      <div class="group">
+        <label class="field"><span>Tags (comma separated)</span><input name="tags" value="${esc(r.tags.join(', '))}" placeholder="Dinner, Vegetarian"></label>
       </div>
       <div class="group"><div class="photo-pick">
         <div class="thumb" id="pv"></div>
         <div class="links"><button type="button" id="pickPhoto"></button><button type="button" class="rm" id="rmPhoto">Remove photo</button></div>
         <input type="file" id="photoInput" accept="image/*" hidden>
       </div></div>
-      <div class="group two">
-        <label class="field"><span>Servings</span><input name="servings" type="number" inputmode="numeric" min="0" value="${r.servings || ''}" placeholder="4"></label>
-        <label class="field"><span>Time</span><input name="time" value="${esc(r.time)}" placeholder="45 min"></label>
-      </div>
-      <div class="group">
-        <label class="field"><span>Tags (comma separated)</span><input name="tags" value="${esc(r.tags.join(', '))}" placeholder="Dinner, Vegetarian"></label>
-      </div>
-      <div class="group">
-        <label class="field"><span>Ingredients — one per line</span><textarea name="ingredients" placeholder="200 g flour&#10;2 eggs&#10;1/2 tsp salt&#10;Topping:&#10;50 g sugar">${esc(r.ingredients)}</textarea></label>
-      </div>
-      <p class="help">Start lines with an amount so they scale with servings. A line ending in “:” becomes a section heading.</p>
-      <div class="group">
-        <label class="field"><span>Steps — one per line</span><textarea name="steps" placeholder="Preheat the oven to 180 °C.&#10;Mix the dry ingredients.">${esc(r.steps)}</textarea></label>
-      </div>
-      <div class="group">
-        <label class="field"><span>Notes</span><textarea name="notes" style="min-height:80px" placeholder="Source, tips, variations…">${esc(r.notes)}</textarea></label>
-      </div>
+      <p class="help">Photo is optional — e.g. a picture of your own result.</p>
+      <div style="height:16px"></div>
       <button class="btn primary" type="submit">Save recipe</button>
     </form>`;
 
@@ -443,17 +411,28 @@ function renderEdit(r) {
     try { photo = await resizeImage(f); drawPhoto(); } catch { toast('Could not load that photo'); }
     e.target.value = '';
   };
+  $('#pasteBtn').onclick = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const u = cleanUrl(text);
+      if (!u) { toast('No link in the clipboard'); return; }
+      $('[name=url]').value = u;
+      if (!$('[name=title]').value.trim()) $('[name=title]').focus();
+    } catch { toast('Paste not allowed — long-press the field and choose Paste'); $('[name=url]').focus(); }
+  };
 
   async function save(e) {
     if (e) e.preventDefault();
     const fd = new FormData($('#form'));
-    const title = String(fd.get('title')).trim();
-    if (!title) { toast('Please add a title'); $('[name=title]').focus(); return; }
+    const rawUrl = String(fd.get('url')).trim();
+    const url = cleanUrl(rawUrl);
+    if (rawUrl && !url) { toast("That doesn't look like a link"); $('[name=url]').focus(); return; }
+    let title = String(fd.get('title')).trim();
+    if (!title && url) title = hostOf(url);
+    if (!title) { toast('Please add a link or a title'); $('[name=url]').focus(); return; }
     const rec = normalize({
-      ...r, title, photo,
-      servings: fd.get('servings'), time: fd.get('time'),
+      ...r, url, title, photo,
       tags: [...new Set(String(fd.get('tags')).split(',').map(t => t.trim()).filter(Boolean))],
-      ingredients: String(fd.get('ingredients')).trim(), steps: String(fd.get('steps')).trim(),
       notes: String(fd.get('notes')).trim(), updated: Date.now()
     });
     try { await putRecipe(rec); } catch { toast('Saving failed — storage may be full'); return; }
@@ -462,7 +441,7 @@ function renderEdit(r) {
   }
   $('#form').addEventListener('submit', save);
   $('#saveBtn').onclick = save;
-  if (isNew) setTimeout(() => $('[name=title]').focus(), 50);
+  if (isNew) setTimeout(() => $('[name=url]').focus(), 50);
 }
 
 /* ---------- backup ---------- */
@@ -471,7 +450,7 @@ $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sh
 $('#exportBtn').onclick = async () => {
   $('#sheet').close();
   const name = `recipes-${new Date().toISOString().slice(0, 10)}.json`;
-  const file = new File([JSON.stringify({ app: 'recipe-box', version: 1, exported: new Date().toISOString(), recipes })],
+  const file = new File([JSON.stringify({ app: 'recipe-box', version: 2, exported: new Date().toISOString(), recipes })],
     name, { type: 'application/json' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], title: 'Recipe backup' }); return; }
@@ -489,7 +468,7 @@ $('#importInput').onchange = async e => {
   try { data = JSON.parse(await f.text()); } catch { alert("That file isn't a valid recipe backup."); return; }
   const list = Array.isArray(data) ? data : data && data.recipes;
   if (!Array.isArray(list)) { alert("That file isn't a valid recipe backup."); return; }
-  const valid = list.filter(x => x && x.title);
+  const valid = list.filter(x => x && (x.title || x.url));
   if (!confirm(`Import ${valid.length} recipe(s)? Recipes with the same ID will be overwritten.`)) return;
   await write(s => valid.forEach(x => s.put(normalize(x))));
   await load(); toast(`Imported ${valid.length} recipe(s)`); route();
